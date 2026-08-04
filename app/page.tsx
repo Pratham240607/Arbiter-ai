@@ -1,15 +1,19 @@
 import Navbar from "../components/Navbar";
+import Hero from "../components/Hero";
+import Background from "../components/Background";
+import Trending from "../components/Trending";
+import Features from "../components/Features";
+import Footer from "../components/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#050816] text-white">
+    <main className="bg-[#050816] text-white min-h-screen">
+      <Background />
       <Navbar />
-
-      <section className="h-screen flex items-center justify-center">
-        <h1 className="text-7xl font-bold">
-          Decision AI
-        </h1>
-      </section>
+      <Hero />
+      <Trending />
+      <Features />
+      <Footer />
     </main>
   );
 }
