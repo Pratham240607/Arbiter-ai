@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arbiter AI
 
-## Getting Started
+> *Judge Smarter • Decide Faster*
 
-First, run the development server:
+Arbiter AI is an AI-powered decision and conversation platform designed to help users analyze questions, explore ideas, and make better-informed decisions.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The application combines a modern conversational AI interface with persistent user conversations and a dedicated comparison experience.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+🚀 Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ 💬 AI Chat
+Ask questions and have natural conversations with Arbiter AI.
 
-## Learn More
+- AI-powered responses
+- Markdown-formatted answers
+- Clean conversational interface
+- Separate conversations for different topics
 
-To learn more about Next.js, take a look at the following resources:
+⚖️ Comparison Mode
+Compare two options in a dedicated decision-making interface.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Compare different choices side-by-side
+- Provide descriptions for each option
+- Get AI-assisted analysis
+- Designed specifically for decision-making
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+ 🔐 Authentication
+User authentication powered by Supabase.
 
-## Deploy on Vercel
+- Sign up
+- Login
+- Logout
+- Persistent user sessions
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+💾 Saved Conversations
+Conversations are stored securely so users can return to them later.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Automatic chat creation
+- User messages saved
+- AI responses saved
+- Previous conversations available from the sidebar
+
+ 🎨 Modern Interface
+
+Arbiter AI uses a dark, minimal interface designed around readability and focus.
+
+- Responsive layout
+- Dark UI
+- Cyan accent system
+- Sidebar navigation
+- Smooth animations
+- Dedicated chat and comparison experiences
+
+---
+
+🛠️ Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Next.js | Frontend framework |
+| React | User interface |
+| TypeScript | Type-safe development |
+| Tailwind CSS | Styling |
+| Supabase | Authentication & database |
+| Gemini API | AI responses |
+| Framer Motion | UI animations |
+| React Markdown | Markdown rendering |
+| Heroicons | Interface icons |
+
+---
+
+🏗️ Project Structure
+
+```text
+decision-ai/
+├── app/
+│   ├── api/
+│   │   └── chat/
+│   ├── page.tsx
+│   └── ...
+│
+├── components/
+│   ├── AuthModal.tsx
+│   ├── AuthProvider.tsx
+│   ├── ChatMessage.tsx
+│   ├── Hero.tsx
+│   ├── Navbar.tsx
+│   ├── Sidebar.tsx
+│   └── ...
+│
+├── lib/
+│   ├── chat.ts
+│   ├── supabase.ts
+│   └── ...
+│
+├── public/
+├── package.json
+└── README.md
