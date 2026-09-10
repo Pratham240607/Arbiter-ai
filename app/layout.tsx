@@ -1,25 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-});
+import { AuthProvider } from "../components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "Decision AI",
-  description: "Compare Anything. Decide Smarter.",
+  title: "Arbiter AI",
+  description: "Judge Smarter. Decide Faster.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
+      <body>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

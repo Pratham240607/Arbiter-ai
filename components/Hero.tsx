@@ -1,240 +1,768 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
+import ChatMessage from "./ChatMessage";
+import { useAuth } from "./AuthProvider";
 import {
-  PaperAirplaneIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/solid";
-import FloatingSuggestions from "./FloatingSuggestions";
+  createChat,
+  saveMessage,
+  getMessages,
+} from "../lib/chat";
 
-export default function Hero() {
+type Mode = "chat" | "comparison";
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+type HeroProps = {
+  mode: Mode;
+  selectedChatId?: string | null;
+};
+
+export default function Hero({
+  mode,
+  selectedChatId,
+}: HeroProps) {
+  const { user } = useAuth();
+
+  const [query, setQuery] = useState("");
   const [thinking, setThinking] = useState(false);
-  const [showResult, setShowResult] = useState(false);
 
-  const handleAsk = () => {
-    setShowResult(false);
+  const [currentChatId, setCurrentChatId] =
+    useState<string | null>(null);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const [itemOne, setItemOne] = useState("");
+  const [itemTwo, setItemTwo] = useState("");
+  const [description, setDescription] = useState("");
+
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * LOAD SELECTED CHAT
+   *
+   * When the user clicks a chat in the sidebar,
+   * completely replace the current conversation.
+   */
+
+  useEffect(() => {
+    if (!selectedChatId) {
+      setCurrentChatId(null);
+      setMessages([]);
+      return;
+    }
+
+    const loadSelectedChat = async () => {
+      try {
+        setThinking(true);
+
+        const data = await getMessages(selectedChatId);
+
+        setCurrentChatId(selectedChatId);
+
+        setMessages(
+          data.map((message) => ({
+            role: message.role as "user" | "assistant",
+            content: message.content,
+          }))
+        );
+      } catch (error) {
+        console.error("LOAD CHAT ERROR:", error);
+
+        setMessages([
+          {
+            role: "assistant",
+            content:
+              "⚠️ I couldn't load this conversation.",
+          },
+        ]);
+      } finally {
+        setThinking(false);
+      }
+    };
+
+    loadSelectedChat();
+  }, [selectedChatId]);
+
+  /*
+   * AUTO SCROLL
+   */
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages, thinking]);
+
+  /*
+   * SEND NORMAL CHAT MESSAGE
+   */
+
+  const handleAsk = async () => {
+    if (!query.trim() || thinking) return;
+
+    const userMessage = query.trim();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: userMessage,
+      },
+    ]);
+
+    setQuery("");
     setThinking(true);
 
-    setTimeout(() => {
-      setThinking(false);
-      setShowResult(true);
-    }, 4000);
+    let chatId = currentChatId;
+
+    /*
+     * CREATE NEW CHAT ONLY IF THIS
+     * IS THE FIRST MESSAGE.
+     */
+
+    try {
+      if (!chatId && user) {
+        const chat = await createChat(
+          user.id,
+          userMessage.slice(0, 40)
+        );
+
+        chatId = chat.id;
+
+        setCurrentChatId(chat.id);
+      }
+
+      if (chatId) {
+        await saveMessage(
+          chatId,
+          "user",
+          userMessage
+        );
+      }
+    } catch (error) {
+      console.error(
+        "CHAT SAVE ERROR:",
+        error
+      );
+    }
+
+    /*
+     * CALL YOUR EXISTING AI API
+     */
+
+    let answer = "";
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          mode: "chat",
+        }),
+      });
+
+      const data = await response.json();
+
+      answer =
+        data.reply ||
+        "⚠️ Could not generate a response.";
+    } catch (error) {
+      console.error(
+        "AI REQUEST ERROR:",
+        error
+      );
+
+      answer =
+        "⚠️ Failed to contact Arbiter AI.";
+    }
+
+    /*
+     * SHOW AI ANSWER
+     */
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: answer,
+      },
+    ]);
+
+    /*
+     * SAVE AI ANSWER
+     */
+
+    try {
+      if (chatId) {
+        await saveMessage(
+          chatId,
+          "assistant",
+          answer
+        );
+      }
+    } catch (error) {
+      console.error(
+        "AI MESSAGE SAVE ERROR:",
+        error
+      );
+    }
+
+    setThinking(false);
   };
 
-  return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center relative overflow-hidden pt-28">
+  /*
+   * COMPARISON
+   */
 
-      {/* Badge */}
-      <div className="mb-6 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300 backdrop-blur-md">
-        ✨ AI-powered comparison & decision engine
-      </div>
+  const handleComparison = async () => {
+    if (
+      !itemOne.trim() ||
+      !itemTwo.trim() ||
+      thinking
+    ) {
+      return;
+    }
 
-      {/* Heading */}
-      <motion.h1
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="text-5xl md:text-6xl lg:text-7xl font-black leading-tight"
-      >
-        Stop Guessing.
-        <br />
-        <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-          Start Deciding.
-        </span>
-      </motion.h1>
+    const comparisonPrompt = `
+Compare these two options:
 
-      {/* Subtitle */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="mt-6 max-w-3xl text-lg md:text-xl text-gray-300 leading-relaxed"
-      >
-        Ask Decision AI anything — compare cars, phones, hotels,
-        travel destinations, AI models, colleges, and more.
-      </motion.p> <FloatingSuggestions />
+Option 1:
+${itemOne.trim()}
 
-      {/* AI Prompt Panel */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="mt-10 w-full max-w-4xl rounded-3xl border border-white/10 bg-white/10 backdrop-blur-2xl p-4 shadow-2xl"
-      >
-        <div className="flex items-center gap-3 border-b border-white/10 px-3 pb-3">
-          <SparklesIcon className="h-5 w-5 text-cyan-400" />
-          <span className="text-sm text-gray-300">
-            Decision AI Assistant
-          </span>
-        </div>
+Option 2:
+${itemTwo.trim()}
 
-        <textarea
-          placeholder="Try: Compare BMW X1 vs Audi Q3 for a family under ₹50 lakh..."
-          className="mt-4 h-40 w-full resize-none bg-transparent p-2 text-white placeholder-gray-400 outline-none"
-        />
+Additional requirements:
+${description.trim() || "Give a balanced overall comparison."}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+Please provide:
+1. Key differences
+2. Advantages of each
+3. Disadvantages of each
+4. Which option is better for different types of users
+5. Final recommendation
+`;
 
-          <div className="flex flex-wrap gap-2 text-sm">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-gray-300">🚗 Cars</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-gray-300">📱 Phones</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-gray-300">🏨 Hotels</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-gray-300">🤖 AI Models</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-gray-300">✈️ Travel</span>
-          </div>
+    const visibleQuestion = `Compare ${itemOne.trim()} vs ${itemTwo.trim()}`;
 
-          <button
-            onClick={handleAsk}
-            disabled={thinking}
-            className="flex items-center gap-2 rounded-2xl bg-cyan-500 px-5 py-3 font-semibold text-black transition hover:scale-105 hover:bg-cyan-400 disabled:opacity-60"
-          >
-            {thinking ? "Thinking..." : "Ask AI"}
-            <PaperAirplaneIcon className="h-5 w-5" />
-          </button>
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: visibleQuestion,
+      },
+    ]);
 
-        </div>
-      </motion.div>
+    setThinking(true);
 
-      {/* Thinking Animation */}
-      {thinking && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-8 w-full max-w-3xl rounded-3xl border border-cyan-400/20 bg-cyan-400/5 p-6 backdrop-blur-xl text-left"
-        >
+    let chatId = currentChatId;
 
-          <div className="flex items-center gap-2 text-cyan-300 font-semibold">
-            🧠 Decision AI is analyzing...
-          </div>
+    /*
+     * CREATE CHAT FOR COMPARISON
+     */
 
-          <div className="mt-4 space-y-3 text-gray-300">
+    try {
+      if (!chatId && user) {
+        const chat = await createChat(
+          user.id,
+          `${itemOne.trim()} vs ${itemTwo.trim()}`.slice(
+            0,
+            40
+          )
+        );
 
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-              Understanding your request
+        chatId = chat.id;
+
+        setCurrentChatId(chat.id);
+      }
+
+      if (chatId) {
+        await saveMessage(
+          chatId,
+          "user",
+          comparisonPrompt
+        );
+      }
+    } catch (error) {
+      console.error(
+        "COMPARISON CHAT SAVE ERROR:",
+        error
+      );
+    }
+
+    /*
+     * CALL AI
+     */
+
+    let answer = "";
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          message: comparisonPrompt,
+          mode: "comparison",
+        }),
+      });
+
+      const data = await response.json();
+
+      answer =
+        data.reply ||
+        "⚠️ Could not generate a comparison.";
+    } catch (error) {
+      console.error(
+        "COMPARISON AI ERROR:",
+        error
+      );
+
+      answer =
+        "⚠️ Failed to generate the comparison.";
+    }
+
+    /*
+     * SHOW RESULT
+     */
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: answer,
+      },
+    ]);
+
+    /*
+     * SAVE RESULT
+     */
+
+    try {
+      if (chatId) {
+        await saveMessage(
+          chatId,
+          "assistant",
+          answer
+        );
+      }
+    } catch (error) {
+      console.error(
+        "COMPARISON SAVE ERROR:",
+        error
+      );
+    }
+
+    setThinking(false);
+  };
+
+  /*
+   * NEW CHAT
+   */
+
+  const startNewChat = () => {
+    setCurrentChatId(null);
+
+    setMessages([]);
+
+    setQuery("");
+
+    setItemOne("");
+    setItemTwo("");
+    setDescription("");
+
+    setThinking(false);
+  };
+
+  /*
+   * =====================================================
+   * COMPARISON MODE
+   * =====================================================
+   */
+
+  if (mode === "comparison") {
+    return (
+      <section className="min-h-screen bg-[#090D16] px-8 pb-16 pt-24">
+
+        <div className="mx-auto max-w-5xl">
+
+          {/* HEADER */}
+
+          <div className="mb-8">
+
+            <div className="mb-3 flex items-center gap-2">
+
+              <span className="h-1.5 w-1.5 rounded-full bg-[#00E5FF]" />
+
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#00E5FF]">
+                Comparison Engine
+              </span>
+
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-              Comparing specifications
-            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-white">
+              Compare your options.
+            </h1>
 
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-              Summarizing reviews
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-              Calculating Decision Score
-            </div>
-
-          </div>
-        </motion.div>
-      )}
-
-      {/* Result Panel */}
-      {showResult && (
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-8 w-full max-w-5xl rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-2xl text-left"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-white">
-              BMW X1 vs Audi Q3
-            </h3>
-
-            <span className="rounded-full bg-green-500/20 px-4 py-2 text-green-300 font-semibold">
-              🏆 Recommended: Audi Q3
-            </span>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-
-            {/* BMW */}
-            <div className="rounded-2xl bg-white/5 p-5 border border-white/10">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xl font-bold">BMW X1</h4>
-                <span className="text-cyan-400 font-bold">91/100</span>
-              </div>
-
-              <div className="mt-4 space-y-4">
-
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Performance</span>
-                    <span>9.2</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/10">
-                    <div className="h-2 w-[92%] rounded-full bg-cyan-400"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Comfort</span>
-                    <span>8.8</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/10">
-                    <div className="h-2 w-[88%] rounded-full bg-cyan-400"></div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Audi */}
-            <div className="rounded-2xl bg-white/5 p-5 border border-white/10">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xl font-bold">Audi Q3</h4>
-                <span className="text-cyan-400 font-bold">94/100</span>
-              </div>
-
-              <div className="mt-4 space-y-4">
-
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Performance</span>
-                    <span>9.0</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/10">
-                    <div className="h-2 w-[90%] rounded-full bg-cyan-400"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Comfort</span>
-                    <span>9.4</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/10">
-                    <div className="h-2 w-[94%] rounded-full bg-cyan-400"></div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-          {/* AI Recommendation */}
-          <div className="mt-6 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 p-5">
-            <h4 className="font-bold text-cyan-300 mb-2">
-              🤖 AI Recommendation
-            </h4>
-
-            <p className="text-gray-300 leading-relaxed">
-              Because your prompt focuses on a family-friendly SUV under ₹50 lakh,
-              the Audi Q3 offers a better overall balance of comfort, cabin quality,
-              safety features, and long-distance usability. The BMW X1 is slightly
-              more engaging to drive, but the Q3 provides stronger value for family buyers.
+            <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">
+              Enter two things you are considering and
+              let Arbiter analyze the differences,
+              trade-offs and best choice.
             </p>
+
           </div>
 
-        </motion.div>
-      )}
+          {/* TWO OPTIONS */}
+
+          <div className="grid gap-4 md:grid-cols-2">
+
+            {/* OPTION ONE */}
+
+            <div className="rounded-xl border border-[#1F293D] bg-[#111726]">
+
+              <div className="border-b border-[#1F293D] px-5 py-3">
+
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Option 01
+                </span>
+
+              </div>
+
+              <input
+                value={itemOne}
+                onChange={(e) =>
+                  setItemOne(e.target.value)
+                }
+                placeholder="e.g. MacBook Air M4"
+                className="w-full bg-transparent px-5 py-5 text-base font-medium text-white outline-none placeholder:text-gray-600"
+              />
+
+            </div>
+
+            {/* OPTION TWO */}
+
+            <div className="rounded-xl border border-[#1F293D] bg-[#111726]">
+
+              <div className="border-b border-[#1F293D] px-5 py-3">
+
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Option 02
+                </span>
+
+              </div>
+
+              <input
+                value={itemTwo}
+                onChange={(e) =>
+                  setItemTwo(e.target.value)
+                }
+                placeholder="e.g. Dell XPS 14"
+                className="w-full bg-transparent px-5 py-5 text-base font-medium text-white outline-none placeholder:text-gray-600"
+              />
+
+            </div>
+
+          </div>
+
+          {/* DESCRIPTION */}
+
+          <div className="mt-4 rounded-xl border border-[#1F293D] bg-[#111726]">
+
+            <div className="border-b border-[#1F293D] px-5 py-3">
+
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                What matters to you?
+              </span>
+
+            </div>
+
+            <textarea
+              value={description}
+              onChange={(e) =>
+                setDescription(e.target.value)
+              }
+              placeholder="Tell Arbiter what you care about — price, performance, battery, gaming, cybersecurity, portability, etc."
+              className="h-28 w-full resize-none bg-transparent px-5 py-4 text-sm leading-6 text-gray-300 outline-none placeholder:text-gray-600"
+            />
+
+            <div className="flex items-center justify-between border-t border-[#1F293D] px-4 py-3">
+
+              <span className="text-xs text-gray-600">
+                Be specific for a better recommendation.
+              </span>
+
+              <button
+                onClick={handleComparison}
+                disabled={
+                  thinking ||
+                  !itemOne.trim() ||
+                  !itemTwo.trim()
+                }
+                className="flex items-center gap-2 rounded-lg bg-[#00E5FF] px-5 py-2.5 text-sm font-semibold text-[#071018] transition hover:bg-[#33eaff] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+
+                {thinking
+                  ? "Analyzing..."
+                  : "Compare"}
+
+                <PaperAirplaneIcon className="h-4 w-4" />
+
+              </button>
+
+            </div>
+
+          </div>
+
+          {/* RESULT */}
+
+          {(messages.length > 0 ||
+            thinking) && (
+
+            <div className="mt-10">
+
+              <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">
+                Analysis
+              </div>
+
+              <div className="space-y-5">
+
+                {messages.map(
+                  (message, index) => (
+                    <ChatMessage
+                      key={index}
+                      role={message.role}
+                      content={message.content}
+                    />
+                  )
+                )}
+
+                {thinking && (
+                  <div className="border-l-2 border-[#00E5FF] bg-[#111726] px-5 py-4 text-sm text-gray-400">
+                    Arbiter is analyzing the options...
+                  </div>
+                )}
+
+                <div ref={bottomRef} />
+
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+      </section>
+    );
+  }
+
+  /*
+   * =====================================================
+   * NORMAL CHAT MODE
+   * =====================================================
+   */
+
+  return (
+    <section className="min-h-screen bg-[#090D16] px-8 pb-16 pt-24">
+
+      <div className="mx-auto max-w-4xl">
+
+        {/* EMPTY / NEW CHAT */}
+
+        {messages.length === 0 && (
+
+          <div className="flex min-h-[65vh] flex-col justify-center">
+
+            <div className="mb-8">
+
+              <div className="mb-3 flex items-center gap-2">
+
+                <span className="h-1.5 w-1.5 rounded-full bg-[#00E5FF]" />
+
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#00E5FF]">
+                  Arbiter AI
+                </span>
+
+              </div>
+
+              <h1 className="text-3xl font-semibold tracking-tight text-white">
+                What do you want to decide?
+              </h1>
+
+              <p className="mt-2 text-sm text-gray-500">
+                Ask a question, explore an idea, or get help
+                making a decision.
+              </p>
+
+            </div>
+
+            {/* INPUT */}
+
+            <div className="rounded-xl border border-[#1F293D] bg-[#111726]">
+
+              <textarea
+                value={query}
+                onChange={(e) =>
+                  setQuery(e.target.value)
+                }
+                onKeyDown={(e) => {
+
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey
+                  ) {
+                    e.preventDefault();
+                    handleAsk();
+                  }
+
+                }}
+                placeholder="Ask Arbiter anything..."
+                className="h-32 w-full resize-none rounded-xl bg-transparent px-5 py-4 text-sm leading-6 text-gray-200 outline-none placeholder:text-gray-600"
+              />
+
+              <div className="flex items-center justify-between border-t border-[#1F293D] px-4 py-3">
+
+                <span className="text-xs text-gray-600">
+                  Enter to send · Shift + Enter for new line
+                </span>
+
+                <button
+                  onClick={handleAsk}
+                  disabled={
+                    thinking ||
+                    !query.trim()
+                  }
+                  className="flex items-center gap-2 rounded-lg bg-[#00E5FF] px-4 py-2 text-sm font-semibold text-[#071018] transition hover:bg-[#33eaff] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+
+                  {thinking
+                    ? "Thinking..."
+                    : "Ask AI"}
+
+                  <PaperAirplaneIcon className="h-4 w-4" />
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* EXISTING CHAT */}
+
+        {messages.length > 0 && (
+
+          <div>
+
+            <div className="mb-8">
+
+              <div className="mb-3 flex items-center gap-2">
+
+                <span className="h-1.5 w-1.5 rounded-full bg-[#00E5FF]" />
+
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#00E5FF]">
+                  Conversation
+                </span>
+
+              </div>
+
+              <h1 className="text-2xl font-semibold tracking-tight text-white">
+                Arbiter AI
+              </h1>
+
+            </div>
+
+            {/* MESSAGES */}
+
+            <div className="space-y-5">
+
+              {messages.map(
+                (message, index) => (
+
+                  <ChatMessage
+                    key={index}
+                    role={message.role}
+                    content={message.content}
+                  />
+
+                )
+              )}
+
+              {thinking && (
+
+                <div className="border-l-2 border-[#00E5FF] bg-[#111726] px-5 py-4 text-sm text-gray-400">
+                  Arbiter is thinking...
+                </div>
+
+              )}
+
+              <div ref={bottomRef} />
+
+            </div>
+
+            {/* FOLLOW-UP INPUT */}
+
+            <div className="sticky bottom-4 mt-8 rounded-xl border border-[#1F293D] bg-[#111726] shadow-2xl">
+
+              <textarea
+                value={query}
+                onChange={(e) =>
+                  setQuery(e.target.value)
+                }
+                onKeyDown={(e) => {
+
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey
+                  ) {
+                    e.preventDefault();
+                    handleAsk();
+                  }
+
+                }}
+                placeholder="Continue the conversation..."
+                className="h-24 w-full resize-none bg-transparent px-5 py-4 text-sm text-gray-200 outline-none placeholder:text-gray-600"
+              />
+
+              <div className="flex justify-end border-t border-[#1F293D] px-4 py-3">
+
+                <button
+                  onClick={handleAsk}
+                  disabled={
+                    thinking ||
+                    !query.trim()
+                  }
+                  className="flex items-center gap-2 rounded-lg bg-[#00E5FF] px-4 py-2 text-sm font-semibold text-[#071018] transition hover:bg-[#33eaff] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+
+                  {thinking
+                    ? "Thinking..."
+                    : "Send"}
+
+                  <PaperAirplaneIcon className="h-4 w-4" />
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
 
     </section>
   );

@@ -11,7 +11,7 @@ const features = [
   {
     icon: "⭐",
     title: "Review Summaries",
-    desc: "Decision AI combines specs, ratings, and review insights into a simple understandable answer.",
+    desc: "Arbiter AI combines specs, ratings, and review insights into a simple understandable answer.",
   },
   {
     icon: "📊",
@@ -37,7 +37,7 @@ export default function Features() {
           className="text-center"
         >
           <h2 className="text-4xl md:text-5xl font-black text-white">
-            Why Decision AI?
+            Why Arbiter AI?
           </h2>
 
           <p className="mt-4 text-gray-400 text-lg">

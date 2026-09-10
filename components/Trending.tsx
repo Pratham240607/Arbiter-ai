@@ -41,7 +41,7 @@ export default function Trending() {
           </h2>
 
           <p className="mt-4 text-gray-400 text-lg">
-            Popular decisions people are asking Decision AI right now.
+            Popular decisions people are asking Arbiter AI right now.
           </p>
         </motion.div>
 

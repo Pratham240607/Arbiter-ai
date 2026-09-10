@@ -16,7 +16,7 @@ export default function Footer() {
         >
 
           <h3 className="text-3xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            Decision AI
+            Arbiter AI
           </h3>
 
           <p className="mt-4 text-gray-400 leading-relaxed">
@@ -81,7 +81,7 @@ export default function Footer() {
 
       {/* Bottom */}
       <div className="mt-12 border-t border-white/10 pt-6 text-center text-sm text-gray-500">
-        © 2026 Decision AI. Built with ❤️ using Next.js, TypeScript & Tailwind CSS.
+        © 2026 Arbiter AI. Built with ❤️ using Next.js, TypeScript & Tailwind CSS.
       </div>
 
     </footer>

@@ -6,3 +6,7 @@ body{
     background:#050816;
     overflow-x:hidden;
 }
+body {
+  background: radial-gradient(circle at top, #13203f 0%, #050816 45%, #02030a 100%);
+  color: white;
+}
