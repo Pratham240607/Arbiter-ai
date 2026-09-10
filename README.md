@@ -1,6 +1,6 @@
 # Arbiter AI
 
-> *Judge Smarter • Decide Faster*
+> **Judge Smarter • Decide Faster**
 
 Arbiter AI is an AI-powered decision and conversation platform designed to help users analyze questions, explore ideas, and make better-informed decisions.
 
@@ -8,9 +8,9 @@ The application combines a modern conversational AI interface with persistent us
 
 ---
 
-🚀 Features
+## 🚀 Features
 
- 💬 AI Chat
+### 💬 AI Chat
 Ask questions and have natural conversations with Arbiter AI.
 
 - AI-powered responses
@@ -18,7 +18,7 @@ Ask questions and have natural conversations with Arbiter AI.
 - Clean conversational interface
 - Separate conversations for different topics
 
-⚖️ Comparison Mode
+### ⚖️ Comparison Mode
 Compare two options in a dedicated decision-making interface.
 
 - Compare different choices side-by-side
@@ -26,7 +26,7 @@ Compare two options in a dedicated decision-making interface.
 - Get AI-assisted analysis
 - Designed specifically for decision-making
 
- 🔐 Authentication
+### 🔐 Authentication
 User authentication powered by Supabase.
 
 - Sign up
@@ -34,7 +34,7 @@ User authentication powered by Supabase.
 - Logout
 - Persistent user sessions
 
-💾 Saved Conversations
+### 💾 Saved Conversations
 Conversations are stored securely so users can return to them later.
 
 - Automatic chat creation
@@ -42,7 +42,7 @@ Conversations are stored securely so users can return to them later.
 - AI responses saved
 - Previous conversations available from the sidebar
 
- 🎨 Modern Interface
+### 🎨 Modern Interface
 
 Arbiter AI uses a dark, minimal interface designed around readability and focus.
 
@@ -55,7 +55,7 @@ Arbiter AI uses a dark, minimal interface designed around readability and focus.
 
 ---
 
-🛠️ Tech Stack
+## 🛠️ Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
@@ -71,7 +71,7 @@ Arbiter AI uses a dark, minimal interface designed around readability and focus.
 
 ---
 
-🏗️ Project Structure
+## 🏗️ Project Structure
 
 ```text
 decision-ai/
