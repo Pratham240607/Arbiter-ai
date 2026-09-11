@@ -2,6 +2,8 @@
 
 > **Judge Smarter • Decide Faster**
 
+[**🚀 Live Demo →**](https://arbiter-ai-24.vercel.app/)
+
 Arbiter AI is an AI-powered decision and conversation platform designed to help users analyze questions, explore ideas, and make better-informed decisions.
 
 The application combines a modern conversational AI interface with persistent user conversations and a dedicated comparison experience.
